@@ -1,5 +1,5 @@
 /* 旅のしおり帖：本棚そのものをオフラインでも開けるようにする（各しおりの保存は本棚のページ側で行う） */
-var SHELL = 'shelf-b317bbc2';
+var SHELL = 'shelf-d5bf8b8d';
 var FILES = ['./', './index.html', './manifest.webmanifest', './icon-180.png', './icon-192.png', './icon-512.png'];
 self.addEventListener('install', function (e) {
   e.waitUntil(caches.open(SHELL).then(function (c) { return c.addAll(FILES); }).then(function () { return self.skipWaiting(); }));
