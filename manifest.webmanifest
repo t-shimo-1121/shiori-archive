@@ -1,6 +1,6 @@
 {
- "name": "旅のしおり帖",
- "short_name": "しおり帖",
+ "name": "旅行のしおり集",
+ "short_name": "しおり集",
  "lang": "ja",
  "start_url": "./",
  "scope": "./",
