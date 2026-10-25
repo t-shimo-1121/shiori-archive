@@ -64,8 +64,9 @@ h1{font-family:var(--f-head);font-weight:700;font-size:clamp(1.7rem,5vw,2.4rem);
 .tally small{font-size:.75rem;font-weight:500;margin-left:2px}
 
 nav.views{position:sticky;top:env(safe-area-inset-top,0px);z-index:5;background:var(--paper);
-  display:flex;gap:4px;padding-block:10px;border-bottom:1px solid var(--line);margin-bottom:20px;overflow-x:auto}
-nav.views button{border:0;background:none;padding:6px 14px;border-radius:999px;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--mute)}
+  display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:2px;padding-block:10px;border-bottom:1px solid var(--line);margin-bottom:20px}
+nav.views button{border:0;background:none;padding:6px 0;border-radius:999px;font-weight:500;cursor:pointer;white-space:nowrap;color:var(--mute);
+  font-size:clamp(.82rem,3.9vw,1rem);min-width:0}
 nav.views button[aria-selected="true"]{background:var(--ink);color:var(--paper)}
 .view[hidden]{display:none}
 h2{font-family:var(--f-head);font-size:1.15rem;margin:28px 0 12px;display:flex;align-items:baseline;gap:10px;text-wrap:balance}
@@ -112,6 +113,14 @@ a.book:active{transform:scale(.98)}
 :root[data-theme="dark"] .ph{background:linear-gradient(170deg,hsl(var(--c) 18% 24%),hsl(var(--c) 18% 18%));color:hsl(var(--c) 30% 84%)}
 :root[data-theme="dark"] .ph-band i{background:hsl(var(--h) 40% 58%)}
 .h-cv{position:relative;overflow:hidden}
+
+/* 地方・種類・系列の札（画面内で折り返す） */
+.jump{display:flex;flex-wrap:wrap;gap:6px;margin:14px 0 12px;scroll-margin-top:calc(env(safe-area-inset-top,0px) + 70px)}
+.jump button{border:1px solid var(--line);background:var(--sheet);border-radius:999px;padding:4px 12px;font-size:.84rem;font-weight:500;cursor:pointer;color:var(--ink)}
+.jump button small{color:var(--mute);margin-left:5px;font-size:.72rem;font-variant-numeric:tabular-nums}
+.jump button[aria-selected="true"],.jump button[aria-pressed="true"]{background:var(--ink);border-color:var(--ink);color:var(--paper)}
+.jump button[aria-selected="true"] small,.jump button[aria-pressed="true"] small{color:inherit;opacity:.75}
+.scat{scroll-margin-top:calc(env(safe-area-inset-top,0px) + 70px)}
 
 /* これまで：年ごとの棚 */
 .yr-jump{display:flex;flex-wrap:wrap;gap:6px;margin:-2px 0 4px}
@@ -188,9 +197,10 @@ body.viewing{overflow:hidden}
 .peaks th[aria-sort="descending"] button::after{content:"↓";opacity:1;color:var(--accent)}
 .peaks .yen{text-align:right;white-space:nowrap}
 .peaks td:nth-child(2){min-width:11em}
-#t-stays td:nth-child(2){min-width:14em}
+#t-stays td.hn,#t-stays td.grp,#t-stays td.trip{white-space:nowrap}
+#t-stays td.grp{font-size:.8rem}
 .peaks td.tnum{white-space:nowrap}
-#t-stays{min-width:640px}
+#t-stays{min-width:0}
 #st-sum,#pk-sum{grid-template-columns:repeat(2,minmax(0,1fr))}
 .peaks .kd{font-size:.72rem;padding:1px 8px;border-radius:5px;background:hsl(var(--h) var(--s) var(--l) / .14);white-space:nowrap}
 .peaks .nt{font-size:.75rem;color:var(--mute)}
@@ -300,12 +310,12 @@ body.viewing{overflow:hidden}
   <button role="tab" data-v="stays" aria-selected="false">宿泊</button>
   <button role="tab" data-v="peaks" aria-selected="false">山</button>
   <button role="tab" data-v="spots" aria-selected="false">施設</button>
-  <button role="tab" data-v="design" aria-selected="false">デザイン</button>
+  <button role="tab" data-v="design" aria-selected="false">制作</button>
 </nav>
 
 <section class="view" id="v-trips">
   <div id="hero"></div>
-  <h2 id="up-h">これから<span class="n" id="n-up"></span></h2>
+  <h2 id="up-h" style="margin-top:4px">これから<span class="n" id="n-up"></span></h2>
   <div class="shelf" id="up"></div>
   <h2>これまで<span class="n" id="n-past"></span></h2>
   <div class="yr-jump" id="yr-jump" aria-label="年へ移動"></div>
@@ -314,9 +324,7 @@ body.viewing{overflow:hidden}
 
 <section class="view" id="v-places" hidden>
   <div class="sumrow" id="pl-sum"></div>
-  <div class="sorter" id="pl-sort" role="group" aria-label="並び替え">
-    <button type="button" data-k="v">訪れた順</button><button type="button" data-k="no">北から</button><button type="button" data-k="pop">人口</button><button type="button" data-k="area">面積</button>
-  </div>
+  <div class="jump" id="pl-tabs" role="tablist" aria-label="地方"></div>
   <div id="places"></div>
   <p class="hint src">人口・面積は2020年国勢調査（citypopulation.de／Wikipedia）。市区町村はメインのアクティビティをした所と泊まった所だけ（地元の新潟県内は除く）。しおり以前の山は登山口の市町村</p>
 </section>
@@ -343,10 +351,12 @@ body.viewing{overflow:hidden}
   <div class="sumrow" id="st-sum"></div>
   <h2>宿<span class="n" id="n-stays"></span></h2>
   <p class="hint">料金は1泊あたりの家族分の合計で、割引・クーポンがあるものは実際に払う額。入湯税・宿泊税は含まない。「—」は金額が分からないもの・未確定のもの</p>
+  <div class="jump" id="st-grp" aria-label="系列で絞り込み"></div>
   <div class="peaks"><table id="t-stays">
     <thead><tr>
       <th data-k="d"><button type="button">宿泊日</button></th>
-      <th data-k="nm"><button type="button">宿</button></th>
+      <th data-k="sn"><button type="button">宿</button></th>
+      <th data-k="g"><button type="button">系列</button></th>
       <th data-k="n"><button type="button">泊数</button></th>
       <th data-k="pn"><button type="button">料金</button></th>
       <th data-k="tt"><button type="button">しおり</button></th>
@@ -356,7 +366,7 @@ body.viewing{overflow:hidden}
 </section>
 
 <section class="view" id="v-spots" hidden>
-  <div class="sumrow" id="sp-sum"></div>
+  <div class="jump" id="sp-jump" aria-label="種類へ移動" style="margin-top:4px"></div>
   <div id="spots"></div>
 </section>
 
@@ -365,9 +375,6 @@ body.viewing{overflow:hidden}
   <div class="dgrid" id="design"></div>
 </section>
 
-<footer>
-  <span class="sync" id="sync">表紙と旅程は各しおりのリポジトリから抽出</span>
-</footer>
 </div>
 
 <div class="viewer" id="viewer" aria-hidden="true">
@@ -805,11 +812,14 @@ var DESIGN=[
   "フッター・人数表記・凡例は載せない",
   "イラストがまだない冊は、本棚では仮の表紙（年・行き先の縦書き・日ごとの色の帯）"]],
  ["本棚",[
-  "次の旅を大きく、その下に「これから」「これまで」の表紙の棚",
+  "「これから」「これまで」の表紙の棚だけ。次の旅は「これから」の先頭（あと何日の札つき）",
+  "タブは6つを画面内に並べる（横スクロールにしない）。保存の状況などのフッターは出さない",
   "「これまで」は出発した年ごとに区切り、上の年ボタンでその年へ飛ぶ",
-  "表紙の下は日付だけ（泊数はタイトルにあるので書かない）。オフライン保存は黙って行う",
-  "旅先は地方→都道府県→市区町村。県庁所在地はバッジ、読みにくい地名はふりがな",
-  "宿・山の表は、しおりの列で旅とつなぐ。宿の料金は1泊あたり"]],
+  "表紙の下は出発日だけ（泊数はタイトルにあるので書かない）。オフライン保存は黙って行う",
+  "旅先は地方のタブ→都道府県（北から）→市区町村（県庁所在地、あとは人口順）。初訪問の年月は出さない",
+  "県庁所在地はバッジ、読みにくい地名はふりがな",
+  "宿・山の表は、しおりの列で旅とつなぐ。宿の料金は1泊あたり",
+  "宿の名前は短くして1行に。系列（ドーミーイン・スーパーホテルなど）の札で絞り込める"]],
  ["色と文字",[
   "表紙から色相を抜き出し、紙・主色・準備・各日に割り当てる（CSS冒頭の数字だけで全体が変わる）",
   "見出しは Zen Maru Gothic、本文は Noto Sans JP。文字は大きめ（基準20px、狭い画面は18.5px）",
@@ -937,6 +947,9 @@ var STAYS=[
  {d:"2027-05-03",t:"taiwan",nm:"排雲山荘",a:"玉山 3,402m",n:1,kind:"山小屋",nt:"未手配・外国人枠"},
  {d:"2027-05-04",t:"taiwan",nm:"ホテルグレイスリー台北",a:"台北",n:1,kind:"ホテル",nt:"未手配"}
 ];
+/* 宿の短い名前（表で1行に収める）と系列 */
+var STAY_SHORT={"リッチモンドホテル福山駅前": ["リッチモンド福山駅前", "リッチモンド"], "ベッセルイン福山駅北口": ["ベッセルイン福山", "ベッセル"], "くれたけインプレミアム名古屋駅前": ["くれたけイン名古屋駅前", "くれたけ"], "カンデオホテルズ福山": ["カンデオ福山", "カンデオ"], "リーベルホテル アット ユニバーサル・スタジオ・ジャパン": ["リーベルホテル USJ", null], "ビジネス&ファミリー旅じや": ["旅じや", null], "ABホテル木更津": ["ABホテル木更津", "ABホテル"], "モビリティリゾートもてぎ ホテル": ["もてぎ ホテル", null], "リッチモンドホテル横浜駅前": ["リッチモンド横浜駅前", "リッチモンド"], "ホテルカターラ RESORT&SPA": ["ホテルカターラ", null], "ザ パーク フロント ホテル アット ユニバーサル・スタジオ・ジャパン": ["パークフロントホテル USJ", null], "三井ガーデンホテルプラナ東京ベイ": ["三井ガーデン プラナ東京ベイ", "三井ガーデン"], "スパリゾートハワイアンズ": ["ハワイアンズ", null], "ダイワロイネットホテル名古屋太閤通口": ["ダイワロイネット名古屋", "ダイワロイネット"], "レゴランド・ジャパン・ホテル": ["レゴランドホテル", null], "丸沼高原オートキャンプ場": ["丸沼高原キャンプ場", null], "ホテルマイステイズ富士山 展望温泉": ["マイステイズ富士山", "マイステイズ"], "シャングリラ・ラサ・セントーサ": ["シャングリ・ラ セントーサ", "シャングリ・ラ"], "ダイワロイネットホテル横浜関内": ["ダイワロイネット横浜関内", "ダイワロイネット"], "ホテルマイステイズ御茶ノ水コンファレンスセンター": ["マイステイズ御茶ノ水", "マイステイズ"], "三井ガーデンホテル銀座五丁目": ["三井ガーデン銀座五丁目", "三井ガーデン"], "リッチモンドホテル博多駅前": ["リッチモンド博多駅前", "リッチモンド"], "亀の井ホテル 別府": ["亀の井ホテル別府", "亀の井ホテル"], "新宿ワシントンホテル ANNEX": ["新宿ワシントンANNEX", "ワシントン"], "ドーミーイン網走": [null, "ドーミーイン"], "ドーミーイン旭川": [null, "ドーミーイン"], "ドーミーイン高知": [null, "ドーミーイン"], "ドーミーイン長野": [null, "ドーミーイン"], "ドーミーイン甲府丸の内": [null, "ドーミーイン"], "ドーミーインPREMIUM渋谷神宮前": ["ドーミーイン渋谷神宮前", "ドーミーイン"], "御宿 野乃 福井": ["野乃 福井", "ドーミーイン"], "御宿 野乃松本": ["野乃 松本", "ドーミーイン"], "ホテルマイステイズ札幌駅北口": ["マイステイズ札幌駅北口", "マイステイズ"], "アパホテル&リゾート〈東京ベイ幕張〉": ["アパ 東京ベイ幕張", "アパホテル"], "アートホテル大阪ベイタワー": ["アートホテル大阪ベイタワー", "アートホテルズ"], "ホテル沖縄 with サンリオキャラクターズ": ["ホテル沖縄 サンリオ", null], "レクー沖縄北谷スパ&リゾート": ["レクー沖縄北谷", null], "スーパーホテル沖縄・名護": ["スーパーホテル名護", "スーパーホテル"], "ホテルグランビューガーデン沖縄": ["グランビューガーデン沖縄", null], "ザ グラン リゾート エレガンテ淡路島": ["エレガンテ淡路島", null], "箱根小涌谷温泉 水の音": ["箱根 水の音", null], "UDON na HOTEL 琴平": ["UDON na HOTEL", null], "レフ松山市駅 by ベッセルホテルズ": ["レフ松山市駅", "ベッセル"], "ルネッサンス": ["ルネッサンス ホノルル", "マリオット"], "ザ・リッツ・カールトン・オアフ": ["リッツ・カールトン オアフ", "マリオット"], "ホテルサンルート彦根": ["サンルート彦根", "サンルート"], "CANDEO HOTELS 奈良橿原": ["カンデオ奈良橿原", "カンデオ"], "スーパーホテルPremier博多駅筑紫口": ["スーパーホテル博多駅筑紫口", "スーパーホテル"], "変なホテルプレミア鹿児島天文館": ["変なホテル鹿児島天文館", "変なホテル"], "スーパーホテル霧島天然温泉": ["スーパーホテル霧島", "スーパーホテル"], "カンデオホテルズ熊本新市街": ["カンデオ熊本新市街", "カンデオ"], "ホテルグレイスリー台北": ["グレイスリー台北", "グレイスリー"], "阿里山英迪格酒店": ["インディゴ阿里山", "IHG"]};
+STAYS.forEach(function(x){var m=STAY_SHORT[x.nm]||[];x.sn=m[0]||x.nm;x.g=m[1]||null;});
 var WD="日月火水木金土";
 var byId={};
 TRIPS.forEach(function(t){
@@ -983,7 +996,7 @@ function book(t){
   return '<a class="book'+(t.cover?'':' is-ph')+'" href="'+t.url+'" target="_blank" rel="noopener" data-open="'+t.id+'" style="--h:'+t.brand+'">'+
     '<div class="cv">'+cover(t,true)+badge+'</div>'+
     '<div class="spine"></div><div class="bd">'+
-    '<h3>'+esc(t.title)+'</h3><div class="when tnum">'+range(t)+'</div>'+
+    '<h3>'+esc(t.title)+'</h3><div class="when tnum">'+md(t.start,true)+'</div>'+
     (t.places.length?'<div class="chips">'+t.places.map(function(p){return'<span class="chip">'+esc(p)+'</span>';}).join("")+'</div>':"")+
     '<div class="meta tnum">'+t.versions+'版・最終更新 '+t.last.slice(5).replace("-","/")+'</div>'+
     '</div></a>';
@@ -991,8 +1004,7 @@ function book(t){
 function renderTrips(){
   var v=visible(),up=v.filter(function(t){return state(t)!=="past";}).sort(function(a,b){return a.start<b.start?-1:1;}),
       past=v.filter(function(t){return state(t)==="past";}).sort(function(a,b){return a.start>b.start?-1:1;});
-  var lead=up[0];
-  document.getElementById("hero").innerHTML=lead?hero(lead):"";
+  document.getElementById("hero").innerHTML="";
   document.getElementById("up").innerHTML=up.map(book).join("");
   document.getElementById("up-h").hidden=!up.length;
   /* これまで：出発した年ごとに区切る（新しい年が上） */
@@ -1050,8 +1062,15 @@ function renderPeaks(){
   }).join("")+'<tr><td></td><td></td><td></td><td><div class="axis tnum"><span>0</span><span>2,000</span><span>4,000m</span></div></td><td></td><td></td><td></td></tr>';
   markHead("t-peaks",SORT.peaks);
 }
+var stGrp="";
 function renderStays(){
-  var list=STAYS.filter(function(x){return byId[x.t];});
+  var all=STAYS.filter(function(x){return byId[x.t];});
+  var cnt={};all.forEach(function(x){if(x.g)cnt[x.g]=(cnt[x.g]||0)+1;});
+  var gs=Object.keys(cnt).filter(function(g){return cnt[g]>1;}).sort(function(a,b){return cnt[b]-cnt[a]||a.localeCompare(b,"ja");});
+  if(stGrp&&gs.indexOf(stGrp)<0)stGrp="";
+  document.getElementById("st-grp").innerHTML='<button type="button" data-g="" aria-pressed="'+!stGrp+'">すべて<small>'+all.length+'</small></button>'+
+    gs.map(function(g){return '<button type="button" data-g="'+esc(g)+'" aria-pressed="'+(g===stGrp)+'">'+esc(g)+'<small>'+cnt[g]+'</small></button>';}).join("");
+  var list=stGrp?all.filter(function(x){return x.g===stGrp;}):all;
   var nights=list.reduce(function(s,x){return s+x.n;},0);
   document.getElementById("n-stays").textContent=list.length+"軒・"+nights+"泊";
   var paid=list.filter(function(x){return x.pn;});
@@ -1061,7 +1080,8 @@ function renderStays(){
     var t=byId[x.t],d=D(x.d);
     return '<tr style="--h:'+t.brand+'">'+
       '<td class="tnum">'+d.getFullYear()+'.'+(d.getMonth()+1)+'.'+d.getDate()+'</td>'+
-      '<td><span class="nm">'+esc(x.nm)+'</span></td>'+
+      '<td class="hn"><span class="nm" title="'+esc(x.nm)+'">'+esc(x.sn)+'</span></td>'+
+      '<td class="grp">'+(x.g?esc(x.g):"—")+'</td>'+
       '<td class="tnum">'+x.n+'泊</td>'+
       '<td class="tnum yen">'+yen(x.pn,x.approx)+'</td>'+
       '<td class="trip">'+esc(t.title)+'</td></tr>';
@@ -1075,6 +1095,7 @@ document.querySelectorAll("#t-peaks th,#t-stays th").forEach(function(th){
     tb==="peaks"?renderPeaks():renderStays();
   });
 });
+document.getElementById("st-grp").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;stGrp=b.dataset.g;renderStays();});
 function renderAll(){renderTrips();renderPlaces();renderStays();renderPeaks();renderSpots();renderDesign();}
 
 /* ── 旅先・施設・デザイン ── */
@@ -1087,7 +1108,7 @@ function km2(a){return (a>=1000?Math.round(a).toLocaleString():a.toFixed(a>=100?
 function sm(dt,dd,unit,bar){return '<dl class="sm"><dt>'+dt+'</dt><dd>'+dd+(unit?'<small>'+unit+'</small>':"")+'</dd>'+(bar!=null?'<div class="bar"><i style="width:'+bar+'%"></i></div>':"")+'</dl>';}
 function hyakuDone(){return PEAKS.filter(function(p){return p.n&&D(p.d)<=today;}).length;}
 
-var plSort="v";try{plSort=localStorage.getItem("arc-plsort")||"v";}catch(e){}
+var plReg="北海道";try{plReg=localStorage.getItem("arc-plreg")||"北海道";}catch(e){}
 /* 読みにくい市区町村のふりがな（地名の部分だけ） */
 var YOMI={"猪苗代町":"いなわしろ","長久手市":"ながくて","桑名市":"くわな","長瀞町":"ながとろ","片品村":"かたしな","九重町":"ここのえ",
   "竹田市":"たけた","日出町":"ひじ","東川町":"ひがしかわ","茂木町":"もてぎ","魚津市":"うおづ","裾野市":"すその","袖ケ浦市":"そでがうら",
@@ -1103,7 +1124,7 @@ function capLabel(p){return p.nm==="北海道"?"道庁所在地":p.nm==="東京�
 function cityRow(c,p){
   var b=been(c);
   return '<div class="city'+(b?"":" plan")+'"><span class="city-n'+(YOMI[c.nm]?" yo":"")+'"><span class="cn">'+cityName(c.nm)+'</span>'+(p&&p.cap===c.nm?'<span class="cap">'+capLabel(p)+'</span>':"")+'</span>'+
-    '<span class="pv'+(b?"":" plan")+'">'+visitTxt(c)+'</span>'+
+    pvTag(c)+
     '<span class="role">'+c.r.map(function(r){return'<span class="rl k-'+r[0]+'"><b>'+r[0]+'</b>'+esc(r[1])+'</span>';}).join("")+'</span>'+
     '<span class="facts"><span>人口 <b>'+man(c.pop)+'</b></span><span>面積 <b>'+km2(c.area)+'</b></span></span>'+
     '<span class="pref-ft">'+esc(c.ft)+'</span></div>';
@@ -1114,36 +1135,44 @@ function renderPlaces(){
     sm("都道府県",vis.length,"/ 47",(vis.length/47*100).toFixed(1))+
     sm("市区町村",cs.length,"+ 予定 "+(CITIES.length-cs.length))+
     sm("海外",ABROAD.filter(been).length,"+ 予定 "+ABROAD.filter(function(a){return!been(a);}).length);
-  document.querySelectorAll("#pl-sort button").forEach(function(b){b.setAttribute("aria-pressed",b.dataset.k===plSort);});
-  var key={v:function(x){return ym(x.v||(x.t&&byId[x.t].start.slice(0,7).replace("-",".")))+(x.no/100);},
-    no:function(x){return x.no;},pop:function(x){return -x.pop;},area:function(x){return -x.area;}}[plSort];
-  document.getElementById("places").innerHTML=REGIONS.map(function(r){
-    var list=PREFS.filter(function(p){return p.no>=r[1]&&p.no<=r[2];}).sort(function(a,b){return key(a)-key(b);});
-    if(!list.length)return"";
-    var n=list.filter(been).length,all=r[2]-r[1]+1;
-    return '<section class="region"><h2>'+r[0]+'<span class="n">'+n+' / '+all+'</span></h2>'+list.map(function(p){
-      var cs=CITIES.filter(function(c){return c.p===p.nm;}).sort(function(a,b){return ym(a.v||planOf(a))-ym(b.v||planOf(b));});
+  var tabs=REGIONS.map(function(r){var all=r[2]-r[1]+1,n=PREFS.filter(function(p){return p.no>=r[1]&&p.no<=r[2]&&been(p);}).length;return [r[0],n+"/"+all];})
+    .concat([["海外",String(ABROAD.filter(been).length)]]);
+  if(!tabs.some(function(t){return t[0]===plReg;}))plReg="北海道";
+  document.getElementById("pl-tabs").innerHTML=tabs.map(function(t){
+    return '<button type="button" role="tab" data-r="'+t[0]+'" aria-selected="'+(t[0]===plReg)+'">'+t[0]+'<small>'+t[1]+'</small></button>';}).join("");
+  /* 都道府県は北から。市区町村は県庁所在地を先頭に、あとは人口の多い順 */
+  var html;
+  if(plReg==="海外"){
+    html=ABROAD.map(function(a){var b=been(a);
+      return '<article class="pref abroad'+(b?"":" plan")+'"><div class="pref-h"><span class="pref-n">'+a.nm+'</span>'+
+        (b?"":'<span class="pv plan">'+planOf(a)+'</span>')+(a.sub?'<span class="facts">'+esc(a.sub)+'</span>':"")+'<span class="pref-ft">'+esc(a.ft)+'</span></div></article>';}).join("");
+  }else{
+    var r=REGIONS.filter(function(x){return x[0]===plReg;})[0];
+    var list=PREFS.filter(function(p){return p.no>=r[1]&&p.no<=r[2];}).sort(function(a,b){return a.no-b.no;});
+    html=list.map(function(p){
+      var cs=CITIES.filter(function(c){return c.p===p.nm;}).sort(function(a,b){return ((b.nm===p.cap)-(a.nm===p.cap))||(b.pop-a.pop);});
       var b=been(p);
-      return '<article class="pref'+(b?"":" plan")+'"><div class="pref-h"><span class="pref-n">'+p.nm+'</span>'+
-        '<span class="pv'+(b?"":" plan")+'">'+visitTxt(p)+'</span>'+
+      return '<article class="pref'+(b?"":" plan")+'"><div class="pref-h"><span class="pref-n">'+p.nm+'</span>'+pvTag(p)+
         '<span class="facts"><span>人口 <b>'+man(p.pop)+'</b></span><span>面積 <b>'+km2(p.area)+'</b></span></span>'+
         '<span class="pref-ft">'+esc(p.ft)+'</span></div>'+(cs.length?'<div class="cities">'+cs.map(function(c){return cityRow(c,p);}).join("")+'</div>':"")+'</article>';
-    }).join("")+'</section>';
-  }).join("")+'<section class="region"><h2>海外</h2>'+ABROAD.map(function(a){var b=been(a);
-    return '<article class="pref abroad'+(b?"":" plan")+'"><div class="pref-h"><span class="pref-n">'+a.nm+'</span>'+
-      '<span class="pv'+(b?"":" plan")+'">'+visitTxt(a)+'</span>'+(a.sub?'<span class="facts">'+esc(a.sub)+'</span>':"")+'<span class="pref-ft">'+esc(a.ft)+'</span></div></article>';}).join("")+'</section>';
+    }).join("")||'<div class="empty">まだ行っていません</div>';
+  }
+  document.getElementById("places").innerHTML=html;
 }
-document.getElementById("pl-sort").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
-  plSort=b.dataset.k;try{localStorage.setItem("arc-plsort",plSort);}catch(e2){}renderPlaces();});
+/* 右上の札：予定と地元だけ（初訪問の年月は出さない） */
+function pvTag(x){return !been(x)?'<span class="pv plan">'+planOf(x)+'</span>':x.v==="地元"?'<span class="pv">地元</span>':"";}
+document.getElementById("pl-tabs").addEventListener("click",function(e){var b=e.target.closest("button");if(!b)return;
+  plReg=b.dataset.r;try{localStorage.setItem("arc-plreg",plReg);}catch(e2){}renderPlaces();
+  var top=document.getElementById("pl-tabs").getBoundingClientRect().top;if(top<0)document.getElementById("pl-tabs").scrollIntoView();});
 
+document.getElementById("sp-jump").addEventListener("click",function(e){var b=e.target.closest("button");
+  if(b)document.getElementById("sc-"+b.dataset.c).scrollIntoView({behavior:"smooth"});});
 function renderSpots(){
-  var b=SPOTS.filter(been);
-  document.getElementById("sp-sum").innerHTML=SPOT_CATS.map(function(c){
-    var l=SPOTS.filter(function(x){return x.c===c[0];}),n=l.filter(been).length,pn=l.length-n;
-    return sm(c[1],n,"施設"+(pn?"・予定 "+pn:""));}).join("");
+  document.getElementById("sp-jump").innerHTML=SPOT_CATS.map(function(c){
+    return '<button type="button" data-c="'+c[0]+'">'+c[1]+'<small>'+SPOTS.filter(function(x){return x.c===c[0]&&been(x);}).length+'</small></button>';}).join("");
   document.getElementById("spots").innerHTML=SPOT_CATS.map(function(c){
     var l=SPOTS.filter(function(x){return x.c===c[0];}).sort(function(a,b){return (been(b)-been(a))||(ym(b.v)-ym(a.v));});
-    return '<section class="scat"><h2>'+c[1]+'<span class="n">'+l.filter(been).length+'施設</span></h2>'+
+    return '<section class="scat" id="sc-'+c[0]+'"><h2>'+c[1]+'<span class="n">'+l.filter(been).length+'施設</span></h2>'+
       (l.length?'<div class="sgrid">'+l.map(function(x){var bn=been(x),tr=byId[x.tr||x.t];
         return '<article class="spot'+(bn?"":" plan")+'"><div class="spot-h"><span class="spot-n">'+esc(x.nm)+'</span><span class="pv'+(bn?"":" plan")+'">'+visitTxt(x)+'</span></div>'+
           '<span class="spot-at">'+esc(x.at)+'</span><dl>'+x.d.map(function(d){return'<dt>'+d[0]+'</dt><dd>'+esc(d[1])+'</dd>';}).join("")+'</dl>'+
@@ -1288,7 +1317,7 @@ document.addEventListener("keydown",function(e){if(e.key==="Escape"&&openId)clos
 /* 全冊を端末に保存（オフライン用）。電波があるときに起動するたび更新 */
 function syncAll(){
   if(!cacheOk())return;
-  var sync=document.getElementById("sync");
+  var sync={}; /* 保存の状況は表示しない */
   try{if(navigator.storage&&navigator.storage.persist)navigator.storage.persist();}catch(e){}
   caches.open(CACHE).then(function(c){
     return Promise.all(TRIPS.map(function(t){return c.match(t.url).then(function(r){if(r)OFF[t.id]=1;});}));
